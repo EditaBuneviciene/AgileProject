@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      width: 350px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 90%;
+      padding: 8px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>evSD_Group1 Project</h2>
+    <h3>Edit Profile Details</h3>
+
+    <form id="profileForm">
+      <label for="fullname">Full Name</label><br>
+      <input type="text" id="fullname" name="fullname"><br>
+
+      <label for="email">Email Address</label><br>
+      <input type="email" id="email" name="email"><br>
+
+      <label for="password">Password</label><br>
+      <input type="password" id="password" name="password"><br>
+
+      <label for="confirm-password">Confirm Password</label><br>
+      <input type="password" id="confirm-password" name="confirm-password"><br>
+
+      <button type="button" onclick="confirmChanges()">Confirm</button>
+    </form>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // Change this to the actual email filename for testing
+    const userEmail = "user_email";  // e.g. "john@example.com"
+    const filename = `${userEmail}.txt`;
+
+    // Automatically load user data
+    window.addEventListener('DOMContentLoaded', () => {
+      fetch(filename)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('File not found');
+          }
+          return response.text();
+        })
+        .then(data => {
+          const lines = data.split('\n');
+          document.getElementById('fullname').value = lines[0]?.split(':')[1]?.trim() || '';
+          document.getElementById('email').value = lines[1]?.split(':')[1]?.trim() || '';
+          document.getElementById('password').value = lines[2]?.split(':')[1]?.trim() || '';
+          document.getElementById('confirm-password').value = lines[3]?.split(':')[1]?.trim() || '';
+          document.getElementById('status').textContent = `Loaded data from ${filename}`;
+        })
+        .catch(err => {
+          document.getElementById('status').textContent = `Could not load file: ${filename}`;
+        });
+    });
+
+    // Simulate saving by downloading a new file
+    function confirmChanges() {
+      const name = document.getElementById('fullname').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      const content = 
+`Full Name: ${name}
+Email: ${email}
+Password: ${password}
+Confirm Password: ${confirmPassword}`;
+
+      const blob = new Blob([content], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${email || 'user'}_updated.txt`;
+      link.click();
+
+      alert("Profile details saved (downloaded as text file).");
+    }
+  </script>
+</body>
+</html>
