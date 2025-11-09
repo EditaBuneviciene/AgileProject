@@ -8,6 +8,8 @@ df = pd.read_csv("cleaned_file.csv")
 #  Extract all unique series names
 series_names = df["Series Name"].unique()
 print(" Total unique series:", len(series_names))
+series_df=pd.DataFrame(series_names, columns=["Series Name"])
+series_df.to_csv("seriesNames.csv", index=False)
 print(" List of all available indicators:\n")
 for name in series_names:
     print("-", name)
@@ -42,7 +44,7 @@ print(f" Weakest average correlation year: {weakest_year} ({avg_corr_per_year.mi
 #  Plot average correlation per year
 """plt.figure(figsize=(12,6))
 plt.plot(avg_corr_per_year.index, avg_corr_per_year.values, marker='o', color='steelblue')
-plt.title("Average Correlation of Life Expectancy per Year (2000–2023)", fontsize=14)
+plt.title("Average Correlation of Life Expectancy per Year (2000-2023)", fontsize=14)
 plt.xlabel("Year")
 plt.ylabel("Average correlation with all other years")
 plt.grid(True)
