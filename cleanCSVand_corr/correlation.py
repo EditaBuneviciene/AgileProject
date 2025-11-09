@@ -7,6 +7,13 @@ df = pd.read_csv("cleaned_file.csv")
 
 #  Extract all unique series names
 series_names = df["Series Name"].unique()
+series_names = df["Series Name"].unique()
+
+# Convert to a DataFrame
+series_df = pd.DataFrame(series_names, columns=["Series Name"])
+
+# Save to a CSV file
+series_df.to_csv("unique_series_names.csv", index=False)
 print(" Total unique series:", len(series_names))
 print(" List of all available indicators:\n")
 for name in series_names:
