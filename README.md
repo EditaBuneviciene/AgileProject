@@ -5,7 +5,7 @@ Edward Tracey R00257771 edward.tracey@mymtu.ie
 
 Dariusz Olczack Zwolinski R00242508 
 
-Patrick Strand p.strand@mymtu.ie
+Patrick Strand R00064201 Email: p.strand@mymtu.ie
 
 
 # Instructions
@@ -63,6 +63,7 @@ Once you are happy with the changes you can merge your branch into **master**.
 `git checkout master`
 
 `git merge <name_of_your_new_branch>`
+
 
 
 
