@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Health Comparison Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Health Indicators Comparison Dashboard</h1>
+    <p>Visualise 2000–2022 trends for any indicator and countries</p>
+  </header>
+
+  <section id="controls">
+    <div class="controls-row">
+      <div class="control-group">
+        <label for="indicatorSelect">Select Indicator:</label>
+        <select id="indicatorSelect">
+          <option value="">-- Select Indicator --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="countryA">Country / Region A:</label>
+        <select id="countryA">
+          <option value="">-- Select Country A --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="countryB">Country / Region B:</label>
+        <select id="countryB">
+          <option value="">-- Select Country B --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="whereBy">Where By:</label>
+        <select id="whereBy">
+          <option value="">-- Select Filter --</option>
+        </select>
+      </div>
+
+      <div class="control-group checkbox-group">
+        <label><input type="checkbox" id="showChange" /> Show % Change (YoY)</label>
+      </div>
+    </div>
+  </section>
+
+  <section id="chartContainer">
+    <canvas id="trendChart"></canvas>
+  </section>
+
+  <section id="summary">
+    <h2>Summary Report</h2>
+    <div id="summaryContent">
+      <p>No data loaded yet. Please select options above once dataset is connected.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© AgileProject – MTU Cork 2025 | Data Source: World Bank / WHO</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
