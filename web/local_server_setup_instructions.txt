@@ -14,3 +14,10 @@ How to run a local server.
  - Open a browser and copy this link into the navigation bar:
 
 	http://localhost:8000/login.html
+
+
+Login details:
+	
+	User email:	edwardtracey@gmail.com
+	
+	User password:	password
