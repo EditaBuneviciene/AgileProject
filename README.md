@@ -1,12 +1,12 @@
 ﻿# AgileProject
 
-Edita Buneviciene R00257694 email edita.buneviciene@mymtu.ie
+- Edita Buneviciene R00257694 email edita.buneviciene@mymtu.ie
 
-Edward Tracey R00257771 edward.tracey@mymtu.ie
+- Edward Tracey R00257771 edward.tracey@mymtu.ie
 
-Dariusz Olczack Zwolinski R00242508 
+- Dariusz Olczack Zwolinski R00242508 
 
-Patrick Strand R00064201 Email: p.strand@mymtu.ie
+- Patrick Strand R00064201 Email: p.strand@mymtu.ie
 
 
 # Instructions
