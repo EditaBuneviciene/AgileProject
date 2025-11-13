@@ -1,5 +1,25 @@
+
 .idea/
 __pycache__/
 *.pyc
 venv/
 .env
+
+.venv/
+venv/
+.idea/
+__pycache__/
+*.pyc
+.env
+
+# Enhanced Python ignores
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.egg
+
+
