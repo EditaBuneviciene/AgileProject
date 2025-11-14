@@ -2,53 +2,111 @@ from unicodedata import numeric
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import tkinter as tk
+from tkinter import ttk
+import os
 
-
-"""
 # Series and Countries columns list
 series_column = 'Series Name'
 countries_column = 'Country Name'
+
+# Global variables
+df = None
+series_list = []
+countries_list = []
+year_columns = []
+
+
+# File handling functions from the second file
+def add_file_to_directory(file_path):
+    """Helper method to add file to directory"""
+    if not os.path.exists(file_path):  # check if path exists
+        print("File not found.")
+        return False
+    if file_path.endswith('.csv'):  # check if .csv
+        try:
+            df = pd.read_csv(file_path)
+            df.to_csv('Data.csv', index=False)  # copy as data.csv
+            print("File successfully saved")
+            return True
+        except Exception as e:
+            print(f"Error reading file: {e}")
+            return False
+    else:
+        print("Incorrect file type")
+        return False
+
+
+def scan_for_csv():
+    """Scan for CSV files and handle dataset loading"""
+    all_files = os.listdir('.')
+    csv_files = [file for file in all_files if file.endswith('.csv')]
+
+    if len(csv_files) == 0:
+        print("Dataset not found. Please add a file to directory.")
+        file_path = input("Enter the path to your CSV file: ").strip().strip('"\'')
+        if add_file_to_directory(file_path):
+            # Recursive scanning after adding file
+            return scan_for_csv()
+        return None
+    else:
+        if "Data.csv" not in csv_files:
+            print("Dataset not found. Please add a file to directory.")
+            file_path = input("Enter the path to your CSV file: ").strip().strip('"\'')
+            if add_file_to_directory(file_path):
+                # Recursive scanning after adding file
+                return scan_for_csv()
+            return None
+        else:
+            if "Data_Cleaned.csv" not in csv_files:
+                print("No cleaned data found")
+                print("Starting cleaning process...")
+                # Load the dataset with NA values configuration
+                df = pd.read_csv('Data.csv',
+                                 na_values=['', ' ', 'NULL', 'null', 'N/A', 'n/a', 'NaN', 'nan', 'None', 'none', '-',
+                                            '--', '...',
+                                            'Missing', 'missing', 'NA', 'na'], keep_default_na=True)
+                high_missing_data = missing_values_in_rows(df)
+                cleaned_df = clean_dataset(high_missing_data, df)
+                print("Dataset found and cleaned")
+                return cleaned_df
+            else:
+                print("Dataset found")
+                return pd.read_csv('Data_Cleaned.csv')
+
 
 def load_dataset():
-    # Reading Dataset with List of unwanted values
-    df = pd.read_csv('Data.csv',
-                     na_values=['', ' ', 'NULL', 'null', 'N/A', 'n/a', 'NaN', 'nan', 'None', 'none', '-', '--', '...',
-                                'Missing', 'missing', 'NA', 'na'], keep_default_na=True)
-    return df
+    """Main dataset loading function"""
+    global df, series_list, countries_list, year_columns
+
+    print("Loading dataset...")
+    df = scan_for_csv()
+
+    if df is not None:
+        # Initialize global variables
+        series_list = list(df[series_column].drop_duplicates())
+        countries_list = list(df[countries_column].drop_duplicates())
+        all_columns = df.columns.tolist()
+        year_columns = all_columns[2:]
+
+        print(
+            f"Dataset loaded successfully: {len(series_list)} series, {len(countries_list)} countries, {len(year_columns)} years")
+        return True
+    else:
+        print("Failed to load dataset.")
+        return False
 
 
-#series_list = list(df[series_column].drop_duplicates())
-#countries_list = list(df[countries_column].drop_duplicates())
-"""
-
-
-# Reading Dataset with List of unwanted values
-df = pd.read_csv('Data.csv',
-                 na_values=['', ' ', 'NULL', 'null', 'N/A', 'n/a', 'NaN', 'nan', 'None', 'none', '-', '--', '...',
-                            'Missing', 'missing', 'NA', 'na'], keep_default_na=True)
-
-# Series and Countries columns list
-series_column = 'Series Name'
-countries_column = 'Country Name'
-series_list = list(df[series_column].drop_duplicates())
-countries_list = list(df[countries_column].drop_duplicates())
-
-# Creating year column
-all_columns = df.columns.tolist()
-year_columns = all_columns[2:]
-
-
-# Missing functions that need to be added
-def missing_values_in_rows(threshold=0.7):
+# Data analysis functions from the first file
+def missing_values_in_rows(df, threshold=0.7):
     """
     Identify rows with high percentage of missing values
     """
     print("Analyzing missing values...")
-    #df = load_dataset()
 
     # Creating year column
-    #all_columns = df.columns.tolist()
-    #year_columns = all_columns[2:]
+    all_columns = df.columns.tolist()
+    year_columns = all_columns[2:]
 
     # Calculate missing percentage for each row
     missing_percentages = []
@@ -65,15 +123,15 @@ def missing_values_in_rows(threshold=0.7):
     return high_missing_indices
 
 
-def clean_dataset(high_missing_indices):
+def clean_dataset(high_missing_indices, df):
     """
     Clean the dataset by removing rows with high missing values
     """
     print("Cleaning dataset...")
-    #Load dataset
-    #df = load_dataset()
+
     # Remove rows with high missing values
     df_clean = df.drop(high_missing_indices).reset_index(drop=True)
+
     # Creating year column
     all_columns = df.columns.tolist()
     year_columns = all_columns[2:]
@@ -81,6 +139,7 @@ def clean_dataset(high_missing_indices):
     # Fill remaining missing values with forward and backward fill
     df_clean[year_columns] = df_clean[year_columns].apply(pd.to_numeric, errors='coerce')
     df_clean[year_columns] = df_clean[year_columns].ffill(axis=1).bfill(axis=1)
+
     # Save cleaned dataset
     df_clean.to_csv('Data_Cleaned.csv', index=False)
     print("Cleaned dataset saved as 'Data_Cleaned.csv'")
@@ -90,6 +149,12 @@ def clean_dataset(high_missing_indices):
 
 def manual_selection_interface():
     """Simple manual selection interface"""
+    global df, series_list, countries_list, year_columns
+
+    if df is None:
+        print("Dataset not loaded. Please load dataset first.")
+        return None, None, None
+
     print("\n" + "=" * 60)
     print("MANUAL SELECTION INTERFACE")
     print("=" * 60)
@@ -203,6 +268,8 @@ def plot_trend(series_name, country_names, year_columns):
     """
     Plot trend comparison for selected series, countries, and years
     """
+    global df
+
     try:
         df_cleaned = pd.read_csv('Data_Cleaned.csv')
     except FileNotFoundError:
@@ -245,49 +312,42 @@ def plot_trend(series_name, country_names, year_columns):
     plt.tight_layout()
     plt.show()
 
+
 def main():
+    """Main function to run the application"""
+    # Load dataset first
+    if not load_dataset():
+        return
+
     print(f'Series: {len(series_list)}')
     print(f'Countries: {len(countries_list)}')
     print(f'Years: {len(year_columns)}')
 
-    # Clean the dataset first
-    try:
-        high_missing_data = missing_values_in_rows()
-        df_clean = clean_dataset(high_missing_data)
-    except Exception as e:
-        print(f"Error during data cleaning: {e}")
-        print("Continuing with original dataset...")
+    # Clean the dataset first (if not already cleaned)
+    if "Data_Cleaned.csv" not in os.listdir('.'):
+        try:
+            high_missing_data = missing_values_in_rows(df)
+            df_clean = clean_dataset(high_missing_data, df)
+        except Exception as e:
+            print(f"Error during data cleaning: {e}")
+            print("Continuing with original dataset...")
 
-    # Use manual selection
-    try:
-        series, countries, years = manual_selection_interface()
+    # Get user selection
+    series, countries, years = manual_selection_interface()
 
-        print(f"\n" + "=" * 60)
-        print("GENERATING VISUALIZATION...")
-        print(f"Series: {series}")
-        print(f"Countries: {', '.join(countries)}")
-        print(f"Years: {len(years)} selected")
-        print("=" * 60)
+    if series is None:
+        return
 
-        plot_trend(series, countries, years)
+    print(f"\n" + "=" * 60)
+    print("GENERATING VISUALIZATION...")
+    print(f"Series: {series}")
+    print(f"Countries: {', '.join(countries)}")
+    print(f"Years: {len(years)} selected")
+    print("=" * 60)
 
-        # Option to run again
-        while True:
-            again = input("\nWould you like to create another comparison? (y/n): ").strip().lower()
-            if again in ['y', 'yes']:
-                series, countries, years = manual_selection_interface()
-                plot_trend(series, countries, years)
-            else:
-                print("Goodbye!")
-                break
-
-    except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Goodbye!")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
+    # Generate plot
+    plot_trend(series, countries, years)
 
 
 if __name__ == '__main__':
     main()
-
