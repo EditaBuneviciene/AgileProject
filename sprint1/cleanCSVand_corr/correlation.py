@@ -50,7 +50,7 @@ print(f" Weakest average correlation year: {weakest_year} ({avg_corr_per_year.mi
 
 #  Plot average correlation per year
 """plt.figure(figsize=(12,6))
-plt.plot(avg_corr_per_year.index, avg_corr_per_year.values, marker='o', color='steelblue')
+plt.plots(avg_corr_per_year.index, avg_corr_per_year.values, marker='o', color='steelblue')
 plt.title("Average Correlation of Life Expectancy per Year (2000-2023)", fontsize=14)
 plt.xlabel("Year")
 plt.ylabel("Average correlation with all other years")
