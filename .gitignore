@@ -22,4 +22,6 @@ dist/
 *.egg-info/
 .egg
 
+Data_Cleaned.csv
+
 
