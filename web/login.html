@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+ <!-- python -m http.server 8000 -->
+ <!-- http://localhost:8000/login.html -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      width: 350px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 5px;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 90%;
+      padding: 8px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .links {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .links a {
+      color: #007bff;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>evSD_Group1 Project</h2>
+    <h3>Login</h3>
+
+    <form id="loginForm" onsubmit="return false;">
+      <label for="email">Email Address</label><br>
+      <input type="email" id="email" name="email" placeholder="Enter your email" required><br>
+
+      <label for="password">Password</label><br>
+      <input type="password" id="password" name="password" placeholder="Enter your password" required><br>
+
+      <button type="button" onclick="login()">Login</button>
+    </form>
+
+    <div class="links">
+      <a href="forgot_password.html">Forgot Password?</a><br><br>
+      Don’t have an account?
+      <a href="signup.html">Create Account</a>
+    </div>
+  </div>
+
+  <script>
+    function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const filename = `${email}.txt`;
+
+      fetch(filename)
+        .then(response => {
+          if (!response.ok) throw new Error('User file not found');
+          return response.text();
+        })
+        .then(data => {
+          const lines = data.split('\n');
+          const storedPassword = lines[2]?.split(':')[1]?.trim();
+          if (password === storedPassword) {
+            alert("Login successful!");
+            window.location.href = "home.html";
+          } else {
+            alert("Incorrect password. Please try again.");
+          }
+        })
+        .catch(() => {
+          alert("User not found. Please check your email or create an account.");
+        });
+    }
+  </script>
+
+</body>
+</html>
