@@ -1,11 +1,12 @@
 ﻿# AgileProject
-Edita Buneviciene R00257694 email edita.buneviciene@mymtu.ie
 
-Edward Tracey R00257771 edward.tracey@mymtu.ie
+- Edita Buneviciene R00257694 email edita.buneviciene@mymtu.ie
 
-Dariusz Olczack Zwolinski R00242508 
+- Edward Tracey R00257771 edward.tracey@mymtu.ie
 
-Patrick Strand
+- Dariusz Olczack Zwolinski R00242508 
+
+- Patrick Strand R00064201 Email: p.strand@mymtu.ie
 
 
 # Instructions
@@ -63,5 +64,7 @@ Once you are happy with the changes you can merge your branch into **master**.
 `git checkout master`
 
 `git merge <name_of_your_new_branch>`
+
+
 
 
