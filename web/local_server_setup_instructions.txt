@@ -1,0 +1,23 @@
+How to run a local server.
+
+ - Shift + Right-Click in this folder. (AgileProject/web/)
+
+ - Select 'Open PowerShell window here'.
+
+ - Run the command:
+
+	python -m http.server 8000
+
+ - The server is now running.
+
+
+ - Open a browser and copy this link into the navigation bar:
+
+	http://localhost:8000/login.html
+
+
+Login details:
+	
+	User email:	edwardtracey@gmail.com
+	
+	User password:	password

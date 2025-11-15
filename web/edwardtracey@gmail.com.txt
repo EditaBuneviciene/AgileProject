@@ -1,0 +1,4 @@
+Full Name: Edward Tracey
+Email: edwardtracey@gmail.com
+Password: password
+Confirm Password: password

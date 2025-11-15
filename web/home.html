@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CSV Plotter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      min-height: 100vh;
+      padding: 30px 10px;
+    }
+    .container {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      width: 720px;
+      padding: 20px;
+      text-align: left;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2, h3 { text-align: center; margin: 6px 0; }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    label { font-size: 14px; color: #333; }
+    input[type="file"], select, button {
+      font-size: 14px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background-color: #0056b3; }
+    #filename {
+      font-size: 14px;
+      color: #555;
+      margin-left: 4px;
+    }
+    #status {
+      font-size: 13px;
+      color: #666;
+      margin-top: 8px;
+    }
+    #chartWrap {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 16px;
+      overflow: auto;
+    }
+    svg { width: 100%; height: 420px; }
+    .axis path, .axis line {
+      stroke: #888;
+      stroke-width: 1;
+      shape-rendering: crispEdges;
+    }
+    .grid line {
+      stroke: #e6e6e6;
+      stroke-width: 1;
+    }
+    .tick text {
+      font-size: 12px;
+      fill: #333;
+    }
+    .legend {
+      font-size: 12px;
+      fill: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>evSD_Group1 Project</h2>
+    <h3>CSV Plotter</h3>
+
+    <div class="row">
+      <label for="fileInput"><strong>Data file:</strong></label>
+      <input type="file" id="fileInput" accept=".csv" />
+      <span id="filename">No file selected</span>
+    </div>
+
+    <div class="row">
+      <label for="xSelect"><strong>X:</strong></label>
+      <select id="xSelect" disabled>
+        <option value="" selected disabled>Choose column</option>
+      </select>
+
+      <label for="ySelect"><strong>Y:</strong></label>
+      <select id="ySelect" disabled>
+        <option value="" selected disabled>Choose column</option>
+      </select>
+
+      <button id="plotBtn" disabled>Plot</button>
+    </div>
+
+    <div id="status">Load a CSV file to begin.</div>
+
+    <div id="chartWrap">
+      <svg id="chart" viewBox="0 0 800 420" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const filenameEl = document.getElementById('filename');
+    const xSelect = document.getElementById('xSelect');
+    const ySelect = document.getElementById('ySelect');
+    const plotBtn = document.getElementById('plotBtn');
+    const statusEl = document.getElementById('status');
+    const svg = document.getElementById('chart');
+
+    let headers = [];
+    let rows = []; // array of objects: {header1: value, header2: value, ...}
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      filenameEl.textContent = file.name;
+      readCSV(file);
+    });
+
+    function readCSV(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const parsed = parseCSV(text);
+        if (!parsed || parsed.headers.length === 0) {
+          statusEl.textContent = 'Could not parse CSV. Check the file format.';
+          return;
+        }
+        headers = parsed.headers;
+        rows = parsed.rows;
+        populateSelects(headers);
+        statusEl.textContent = `Loaded ${rows.length} rows with ${headers.length} columns.`;
+      };
+      reader.onerror = () => {
+        statusEl.textContent = 'Error reading file.';
+      };
+      reader.readAsText(file);
+    }
+
+    // Simple CSV parser for plain CSV (no embedded commas/quotes)
+    function parseCSV(text) {
+      // Normalize line endings and trim
+      const lines = text.replace(/\r/g, '\n').split('\n').filter(l => l.trim().length > 0);
+      if (lines.length === 0) return null;
+
+      const headers = lines[0].split(',').map(h => h.trim());
+      const rows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const cells = lines[i].split(','); // basic split; fine for clean CSV
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = (cells[idx] ?? '').trim();
+        });
+        rows.push(obj);
+      }
+      return { headers, rows };
+    }
+
+    function populateSelects(headers) {
+      [xSelect, ySelect].forEach(sel => {
+        sel.innerHTML = '<option value="" selected disabled>Choose column</option>';
+        headers.forEach(h => {
+          const opt = document.createElement('option');
+          opt.value = h;
+          opt.textContent = h;
+          sel.appendChild(opt);
+        });
+        sel.disabled = false;
+      });
+      plotBtn.disabled = false;
+    }
+
+    // Helper: convert array of strings to numbers when possible
+    function toNumeric(arr) {
+      const numeric = arr.map(v => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : NaN;
+      });
+      // If too many NaNs, treat as categorical
+      const nanCount = numeric.filter(n => Number.isNaN(n)).length;
+      const categorical = nanCount > arr.length / 2;
+      return { numeric, categorical };
+    }
+
+    plotBtn.addEventListener('click', () => {
+      const xKey = xSelect.value;
+      const yKey = ySelect.value;
+      if (!xKey || !yKey) {
+        statusEl.textContent = 'Please select both X and Y columns.';
+        return;
+      }
+      drawChart(xKey, yKey);
+    });
+
+    function drawChart(xKey, yKey) {
+      // Extract series
+      const xRaw = rows.map(r => r[xKey]);
+      const yRaw = rows.map(r => r[yKey]);
+
+      // Handle numeric vs categorical X
+      const { numeric: xNum, categorical: xIsCat } = toNumeric(xRaw);
+      const { numeric: yNum } = toNumeric(yRaw);
+
+      // Build plotting x array (indexes for categorical)
+      let xVals, xLabels;
+      if (xIsCat) {
+        xVals = xRaw.map((_, i) => i + 1);
+        xLabels = xRaw;
+      } else {
+        xVals = xNum;
+        xLabels = xNum.map(String);
+      }
+
+      // Filter out rows where y is NaN (and x if numeric)
+      const filtered = [];
+      for (let i = 0; i < xVals.length; i++) {
+        const xv = xVals[i];
+        const yv = yNum[i];
+        if (!Number.isFinite(yv)) continue;
+        if (!xIsCat && !Number.isFinite(xv)) continue;
+        filtered.push({ x: xv, y: yv, label: xIsCat ? xLabels[i] : null });
+      }
+
+      if (filtered.length < 2) {
+        statusEl.textContent = 'Not enough numeric data to plot.';
+        return;
+      }
+
+      // Clear SVG
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      // Chart dimensions
+      const W = 800, H = 420;
+      const margin = { left: 60, right: 20, top: 20, bottom: 60 };
+      const innerW = W - margin.left - margin.right;
+      const innerH = H - margin.top - margin.bottom;
+
+      // Scales
+      const xMin = Math.min(...filtered.map(d => d.x));
+      const xMax = Math.max(...filtered.map(d => d.x));
+      const yMin = Math.min(...filtered.map(d => d.y));
+      const yMax = Math.max(...filtered.map(d => d.y));
+
+      const xScale = (x) => {
+        if (xMax === xMin) return margin.left + innerW / 2;
+        return margin.left + ((x - xMin) / (xMax - xMin)) * innerW;
+      };
+      const yScale = (y) => {
+        if (yMax === yMin) return margin.top + innerH / 2;
+        return margin.top + innerH - ((y - yMin) / (yMax - yMin)) * innerH;
+      };
+
+      // Axes
+      const axisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+      // X axis line
+      const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      xAxis.setAttribute('x1', margin.left);
+      xAxis.setAttribute('y1', margin.top + innerH);
+      xAxis.setAttribute('x2', margin.left + innerW);
+      xAxis.setAttribute('y2', margin.top + innerH);
+      xAxis.setAttribute('stroke', '#888');
+      axisGroup.appendChild(xAxis);
+
+      // Y axis line
+      const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      yAxis.setAttribute('x1', margin.left);
+      yAxis.setAttribute('y1', margin.top);
+      yAxis.setAttribute('x2', margin.left);
+      yAxis.setAttribute('y2', margin.top + innerH);
+      yAxis.setAttribute('stroke', '#888');
+      axisGroup.appendChild(yAxis);
+
+      // X ticks
+      const xTicks = 6;
+      for (let i = 0; i <= xTicks; i++) {
+        const t = xMin + (i * (xMax - xMin)) / xTicks;
+        const tx = xScale(t);
+
+        const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tick.setAttribute('x1', tx);
+        tick.setAttribute('y1', margin.top + innerH);
+        tick.setAttribute('x2', tx);
+        tick.setAttribute('y2', margin.top + innerH + 6);
+        tick.setAttribute('stroke', '#888');
+        axisGroup.appendChild(tick);
+
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', tx);
+        lbl.setAttribute('y', margin.top + innerH + 20);
+        lbl.setAttribute('text-anchor', 'middle');
+        lbl.setAttribute('class', 'tick');
+        lbl.textContent = xIsCat ? '' : formatTick(t);
+        axisGroup.appendChild(lbl);
+      }
+
+      // Y ticks
+      const yTicks = 6;
+      for (let i = 0; i <= yTicks; i++) {
+        const t = yMin + (i * (yMax - yMin)) / yTicks;
+        const ty = yScale(t);
+
+        const grid = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        grid.setAttribute('x1', margin.left);
+        grid.setAttribute('y1', ty);
+        grid.setAttribute('x2', margin.left + innerW);
+        grid.setAttribute('y2', ty);
+        grid.setAttribute('stroke', '#e6e6e6');
+        svg.appendChild(grid);
+
+        const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tick.setAttribute('x1', margin.left - 6);
+        tick.setAttribute('y1', ty);
+        tick.setAttribute('x2', margin.left);
+        tick.setAttribute('y2', ty);
+        tick.setAttribute('stroke', '#888');
+        axisGroup.appendChild(tick);
+
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', margin.left - 8);
+        lbl.setAttribute('y', ty + 4);
+        lbl.setAttribute('text-anchor', 'end');
+        lbl.setAttribute('class', 'tick');
+        lbl.textContent = formatTick(t);
+        axisGroup.appendChild(lbl);
+      }
+
+      svg.appendChild(axisGroup);
+
+      // Polyline path
+      const points = filtered.map(d => `${xScale(d.x)},${yScale(d.y)}`).join(' ');
+      const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      pl.setAttribute('points', points);
+      pl.setAttribute('fill', 'none');
+      pl.setAttribute('stroke', '#2a7fd1');
+      pl.setAttribute('stroke-width', '2');
+      svg.appendChild(pl);
+
+      // Dots
+      filtered.forEach(d => {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', xScale(d.x));
+        c.setAttribute('cy', yScale(d.y));
+        c.setAttribute('r', 3);
+        c.setAttribute('fill', '#2a7fd1');
+        svg.appendChild(c);
+      });
+
+      // Labels
+      const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      xTitle.setAttribute('x', margin.left + innerW / 2);
+      xTitle.setAttribute('y', H - 18);
+      xTitle.setAttribute('text-anchor', 'middle');
+      xTitle.setAttribute('class', 'legend');
+      xTitle.textContent = xKey;
+      svg.appendChild(xTitle);
+
+      const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      yTitle.setAttribute('transform', `translate(18, ${margin.top + innerH / 2}) rotate(-90)`);
+      yTitle.setAttribute('text-anchor', 'middle');
+      yTitle.setAttribute('class', 'legend');
+      yTitle.textContent = yKey;
+      svg.appendChild(yTitle);
+
+      statusEl.textContent = `Plotted: X = "${xKey}", Y = "${yKey}" (${filtered.length} points).`;
+    }
+
+    function formatTick(v) {
+      const abs = Math.abs(v);
+      if (abs >= 1e9) return (v/1e9).toFixed(1) + 'B';
+      if (abs >= 1e6) return (v/1e6).toFixed(1) + 'M';
+      if (abs >= 1e3) return (v/1e3).toFixed(1) + 'k';
+      if (Math.abs(v) < 1 && Math.abs(v) > 0) return v.toFixed(2);
+      return (Math.round(v * 100) / 100).toString();
+    }
+  </script>
+</body>
+</html>
