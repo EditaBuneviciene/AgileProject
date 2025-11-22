@@ -1,0 +1,6 @@
+15-Year Trend Prediction - Domestic general government health expenditure per capita, PPP (current international $)
+==================================================
+
+Azerbaijan predictions: [np.float64(224.122), np.float64(230.333), np.float64(236.184), np.float64(241.676), np.float64(246.808), np.float64(251.581), np.float64(255.994), np.float64(260.049), np.float64(263.743), np.float64(267.079), np.float64(270.055), np.float64(272.672), np.float64(274.929), np.float64(276.827), np.float64(278.365)]
+Estonia predictions: [np.float64(2258.623), np.float64(2395.992), np.float64(2537.679), np.float64(2683.684), np.float64(2834.006), np.float64(2988.647), np.float64(3147.605), np.float64(3310.881), np.float64(3478.475), np.float64(3650.386), np.float64(3826.616), np.float64(4007.163), np.float64(4192.028), np.float64(4381.211), np.float64(4574.712)]
+Kiribati predictions: [np.float64(241.573), np.float64(257.063), np.float64(273.698), np.float64(291.478), np.float64(310.404), np.float64(330.474), np.float64(351.689), np.float64(374.05), np.float64(397.555), np.float64(422.206), np.float64(448.002), np.float64(474.942), np.float64(503.028), np.float64(532.259), np.float64(562.635)]
