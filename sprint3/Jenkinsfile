@@ -1,0 +1,15 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build and Test') {
+            steps {
+                sh '''
+                    cd sprint3
+                    docker build -t data-analysis-app .
+                    docker run data-analysis-app python -m pytest test_main.py -v
+                '''
+            }
+        }
+    }
+}

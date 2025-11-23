@@ -1,0 +1,21 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build and test Docker image
+      run: |
+        cd sprint3
+        docker build -t data-analysis-app .
+        docker run data-analysis-app python -m pytest test_main.py -v

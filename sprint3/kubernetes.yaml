@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-analysis-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-analysis
+  template:
+    metadata:
+      labels:
+        app: data-analysis
+    spec:
+      containers:
+      - name: data-analysis
+        image: data-analysis-app:latest
+        imagePullPolicy: Never  # For local testing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-analysis-service
+spec:
+  selector:
+    app: data-analysis
+  ports:
+  - port: 80
