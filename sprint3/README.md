@@ -11,7 +11,5 @@ cd AgileProject/sprint3
 docker build -t data-analysis-app .
 Then run build image:
 win command:
-docker run -it -v ${PWD}\data:/app/data data-analysis-app
+docker run -it data-analysis-app
 docker run data-analysis-app python -m pytest test_main.py -v
-linux command:
-docker run -it -v $(pwd)/data:/app/data data-analysis-app
