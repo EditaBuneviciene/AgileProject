@@ -7,6 +7,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# COPY THE CSV FILE
+COPY Data.csv .
+
 # Copy application/main code
 COPY main.py .
 COPY test_main.py .
