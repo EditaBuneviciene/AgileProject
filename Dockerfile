@@ -6,14 +6,14 @@ FROM python:3.9-slim as builder
 WORKDIR /app
 
 # Copy requirements
-COPY requirements.txt .
+COPY sprint3/requirements.txt .
 
 # Install all dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install pytest pytest-cov
 
 # Copy all source code
-COPY . .
+COPY sprint3 .
 
 # Stage 2: Test image
 FROM builder as test
@@ -29,8 +29,8 @@ COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy only production code
-COPY main.py .
-COPY Data.csv .
+COPY sprint3/main.py .
+COPY sprint3/Data.csv .
 
 # Set environment variables
 ENV PYTHONPATH=/app
