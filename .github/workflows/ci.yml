@@ -17,13 +17,15 @@ jobs:
       - name: Build and run tests in Docker
         run: |
           docker build --target test -t data-analysis-test .
-          docker run --rm -v $(pwd)/coverage.xml:/app/coverage.xml data-analysis-test
+          docker run --rm data-analysis-test
 
-      - name: Upload Test Coverage Artifact
+      - name: Upload Test Results
         uses: actions/upload-artifact@v4
         with:
-          name: test-coverage-report
-          path: coverage.xml
+          name: test-results
+          path: |
+            coverage.xml
+            .pytest_cache/
           retention-days: 30
 
   build:
@@ -49,31 +51,8 @@ jobs:
         with:
           name: production-docker-image
           path: /tmp/docker-image.tar
-          retention-days: 7
+          retention-days: 30
 
       - name: Test production image
         run: |
           docker run --rm data-analysis-prod python -c "import pandas as pd; import numpy as np; print('Production image working!')"
-
-  package:
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Create application package
-        run: |
-          mkdir -p dist
-          # Create a clean package without test files
-          cp main.py requirements.txt Dockerfile dist/
-          tar -czf dist/application-package.tar.gz -C dist .
-          echo "Application package created"
-
-      - name: Upload Application Package Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: application-package
-          path: dist/application-package.tar.gz
-          retention-days: 30
