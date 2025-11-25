@@ -1,0 +1,79 @@
+name: Project CI/CD Pipeline with Artifacts
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and run tests in Docker
+        run: |
+          docker build --target test -t data-analysis-test .
+          docker run --rm -v $(pwd)/coverage.xml:/app/coverage.xml data-analysis-test
+
+      - name: Upload Test Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage-report
+          path: coverage.xml
+          retention-days: 30
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production Docker image
+        run: docker build --target production -t data-analysis-prod .
+
+      - name: Save Docker Image as Artifact
+        run: docker save data-analysis-prod -o /tmp/docker-image.tar
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-docker-image
+          path: /tmp/docker-image.tar
+          retention-days: 30
+
+      - name: Test production image
+        run: |
+          docker run --rm data-analysis-prod python -c "import pandas as pd; import numpy as np; print('Production image working!')"
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create application package
+        run: |
+          mkdir -p dist
+          # Create a clean package without test files
+          cp main.py requirements.txt Dockerfile dist/
+          tar -czf dist/application-package.tar.gz -C dist .
+          echo "Application package created"
+
+      - name: Upload Application Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-package
+          path: dist/application-package.tar.gz
+          retention-days: 30
