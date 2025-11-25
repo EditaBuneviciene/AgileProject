@@ -1,4 +1,0 @@
-15-Year Trend Prediction - Age dependency ratio (% of working-age population)
-==================================================
-
-Azerbaijan predictions: [np.float64(47.744), np.float64(49.399), np.float64(51.212), np.float64(53.183), np.float64(55.312), np.float64(57.599), np.float64(60.044), np.float64(62.647), np.float64(65.408), np.float64(68.327), np.float64(71.403), np.float64(74.638), np.float64(78.031), np.float64(81.582), np.float64(85.29)]

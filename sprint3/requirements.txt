@@ -9,3 +9,5 @@ pytz==2025.2
 six==1.17.0
 tzdata==2025.2
 openai>=1.0.0
+scikit-learn>=1.0.0
+requests>=2.25.0

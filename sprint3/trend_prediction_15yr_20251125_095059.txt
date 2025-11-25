@@ -1,6 +1,0 @@
-15-Year Trend Prediction - Incidence of HIV, ages 15-49 (per 1,000 uninfected population ages 15-49)
-==================================================
-
-Algeria predictions: [np.float64(0.082), np.float64(0.082), np.float64(0.082), np.float64(0.081), np.float64(0.08), np.float64(0.079), np.float64(0.078), np.float64(0.076), np.float64(0.075), np.float64(0.073), np.float64(0.07), np.float64(0.068), np.float64(0.065), np.float64(0.062), np.float64(0.059)]
-Madagascar predictions: [np.float64(0.556), np.float64(0.57), np.float64(0.583), np.float64(0.595), np.float64(0.607), np.float64(0.617), np.float64(0.628), np.float64(0.637), np.float64(0.646), np.float64(0.655), np.float64(0.662), np.float64(0.669), np.float64(0.676), np.float64(0.682), np.float64(0.687)]
-Panama predictions: [np.float64(0.596), np.float64(0.593), np.float64(0.59), np.float64(0.588), np.float64(0.585), np.float64(0.583), np.float64(0.582), np.float64(0.58), np.float64(0.579), np.float64(0.578), np.float64(0.577), np.float64(0.577), np.float64(0.577), np.float64(0.577), np.float64(0.577)]
