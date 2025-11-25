@@ -71,14 +71,11 @@ jobs:
 
       - name: Create application package
         run: |
-          mkdir -p dist
-          cp main.py requirements.txt Dockerfile dist/
-          tar -czf dist/application-package.tar.gz -C dist .
-          echo "Application package created"
+          tar -czf application-package.tar.gz main.py requirements.txt Dockerfile
 
       - name: Upload Application Package Artifact
         uses: actions/upload-artifact@v4
         with:
           name: application-package
-          path: dist/application-package.tar.gz
+          path: application-package.tar.gz
           retention-days: 30
