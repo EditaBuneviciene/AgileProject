@@ -178,11 +178,59 @@ def get_available_model(client):
         print(f"Error getting models: {e}")
         return None
 
+
+# Calculate accuracy scores for each country using train-test split
+def calculate_model_accuracy(country_data):
+    accuracy_scores = {}
+
+    for country, data in country_data.items():
+        if len(data['values']) >= 4:  # Need enough data for meaningful split
+            x = np.array(data['years'])
+            y = np.array(data['values'])
+
+            # Remove NaN values
+            mask = ~np.isnan(y)
+            x_clean = x[mask]
+            y_clean = y[mask]
+
+            if len(y_clean) >= 4:
+                # Train-test split (70% train, 30% test)
+                split_point = int(len(x_clean) * 0.7)
+
+                x_train = x_clean[:split_point]
+                y_train = y_clean[:split_point]
+                x_test = x_clean[split_point:]
+                y_test = y_clean[split_point:]
+
+                try:
+                    # Train model on training data
+                    degree = min(1, len(y_train) - 1)  # Use linear for simplicity
+                    z = np.polyfit(x_train, y_train, degree)
+                    p = np.poly1d(z)
+
+                    # Test on unseen data
+                    test_predictions = p(x_test)
+
+                    # Calculate accuracy (percentage within 15% error margin)
+                    errors = np.abs((test_predictions - y_test) / y_test) * 100
+                    accuracy = np.mean(errors < 15) * 100  # Count predictions within 15% error
+                    accuracy_scores[country] = accuracy
+
+                except:
+                    accuracy_scores[country] = "Calculation failed"
+            else:
+                accuracy_scores[country] = "Insufficient data"
+        else:
+            accuracy_scores[country] = "Insufficient data"
+
+    return accuracy_scores
+
+
 # Generate simple AI insights
 def get_llm_insight_report(series_name, country_data, years):
     client = setup_llm()
     if not client:
-        return "LLM not available for insights. Install Ollama from https://ollama.ai"
+        return "LLM not available for insights."
 
     try:
         model_name = get_available_model(client)
@@ -238,42 +286,53 @@ def get_llm_trend_prediction(series_name, country_data, prediction_years):
 
         print(f"Generating predictions with {model_name}...")
 
-        # Build better data summary with trends
-        data_summary = "Historical data:\n"
+        # Calculate accuracy scores first
+        accuracy_scores = calculate_model_accuracy(country_data)
+
+        # Build data summary with trends and accuracy
+        data_summary = "Historical data with model accuracy:\n"
         for country, data in country_data.items():
             if len(data['values']) > 0:
                 values = data['values']
                 years = data['years']
+                accuracy = accuracy_scores.get(country, "Unknown")
+
                 if len(values) > 1:
                     trend = "increasing" if values[-1] > values[0] else "decreasing" if values[-1] < values[
                         0] else "stable"
-                    data_summary += f"{country}: {trend} from {values[0]:.3f} to {values[-1]:.3f} over {len(years)} years\n"
+                    data_summary += f"{country}: {trend} from {values[0]:.3f} to {values[-1]:.3f} | Model Accuracy: {accuracy}\n"
                 else:
-                    data_summary += f"{country}: current value {values[-1]:.3f}\n"
+                    data_summary += f"{country}: current value {values[-1]:.3f} | Model Accuracy: {accuracy}\n"
 
-        # Much more specific prompt
+        # Calculate overall accuracy for context
+        numeric_accuracies = [acc for acc in accuracy_scores.values() if isinstance(acc, (int, float))]
+        overall_accuracy = np.mean(numeric_accuracies) if numeric_accuracies else 0
+
+        # Specific prompt with accuracy context
         prompt = f"""
-        You are a data analysis assistant. Based on the historical data below, predict future values.
+                You are a data analysis assistant. Based on the historical data below, predict future values.
 
-        {data_summary}
+                {data_summary}
 
-        Series: {series_name}
-        Prediction years: {prediction_years}
+                Series: {series_name}
+                Prediction years: {prediction_years}
+                Overall Model Reliability: {overall_accuracy:.1f}% accuracy on historical test data
 
-        Return ONLY valid JSON in this exact format:
-        {{
-            "predictions": {{
-                "Country Name 1": [0.1, 0.2, 0.3, ...],
-                "Country Name 2": [0.4, 0.5, 0.6, ...]
-            }}
-        }}
+                Return ONLY valid JSON in this exact format:
+                {{
+                    "predictions": {{
+                        "Country Name 1": [0.1, 0.2, 0.3, ...],
+                        "Country Name 2": [0.4, 0.5, 0.6, ...]
+                    }}
+                }}
 
-        Rules:
-        - Return exactly {prediction_years} numbers per country
-        - Make predictions realistic based on the trend
-        - Keep values in the same range as historical data
-        - Do NOT add any explanation, just the JSON
-        """
+                Rules:
+                - Return exactly {prediction_years} numbers per country
+                - Make predictions realistic based on the trend
+                - Keep values in the same range as historical data
+                - For countries with low accuracy, be more conservative
+                - Do NOT add any explanation, just the JSON
+                """
 
         response = client.chat.completions.create(
             model=model_name,
@@ -282,7 +341,7 @@ def get_llm_trend_prediction(series_name, country_data, prediction_years):
                  "content": "You are a data analyst. You always return ONLY valid JSON without any additional text."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3,  # Slightly higher for more creative but consistent predictions
+            temperature=0.3,
             max_tokens=500,
             timeout=30
         )
@@ -290,7 +349,7 @@ def get_llm_trend_prediction(series_name, country_data, prediction_years):
         prediction_text = response.choices[0].message.content.strip()
         print(f"DEBUG: Raw LLM response: {prediction_text}")
 
-        # Better JSON extraction
+        # JSON extraction
         import re
         json_match = re.search(r'\{.*\}', prediction_text, re.DOTALL)
         if json_match:
@@ -307,6 +366,8 @@ def get_llm_trend_prediction(series_name, country_data, prediction_years):
                         print(f"Warning: {country} has wrong number of predictions. Using mathematical fallback.")
                         return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
 
+                # Add accuracy scores to the predictions
+                predictions["accuracy_scores"] = accuracy_scores
                 print("LLM prediction ready!")
                 return predictions
             else:
@@ -316,11 +377,19 @@ def get_llm_trend_prediction(series_name, country_data, prediction_years):
         except json.JSONDecodeError as e:
             print(f"JSON parsing failed: {e}")
             # Try to parse the incorrect format and convert it
-            return parse_alternative_format(prediction_text, country_data, prediction_years)
+            fallback_predictions = parse_alternative_format(prediction_text, country_data, prediction_years)
+            # Add accuracy scores to fallback predictions too
+            if "accuracy_scores" not in fallback_predictions:
+                fallback_predictions["accuracy_scores"] = accuracy_scores
+            return fallback_predictions
 
     except Exception as e:
         print(f"LLM prediction failed: {e}")
-        return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+        fallback_predictions = get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+        # Add accuracy scores to mathematical fallback too
+        if "accuracy_scores" not in fallback_predictions:
+            fallback_predictions["accuracy_scores"] = calculate_model_accuracy(country_data)
+        return fallback_predictions
 
 # Try to parse alternative JSON formats the LLM might return
 def parse_alternative_format(prediction_text, country_data, prediction_years):
@@ -378,9 +447,11 @@ def create_manual_predictions(country_data, prediction_years):
     print("Created enhanced manual predictions")
     return predictions
 
-# Mathematical fallback for trend predictions
+# Splitting rows for training and testing dataset
 def get_mathematical_trend_prediction(series_name, country_data, prediction_years):
     predictions = {"predictions": {}}
+    # Calculate accuracy
+    accuracy_scores = calculate_model_accuracy(country_data)
 
     for country, data in country_data.items():
         if len(data['values']) >= 2:
@@ -437,6 +508,8 @@ def get_mathematical_trend_prediction(series_name, country_data, prediction_year
             last_value = data['values'][-1] if len(data['values']) > 0 else 0
             predictions["predictions"][country] = [round(last_value, 3)] * prediction_years
 
+    # Add accuracy scores to predictions
+    predictions["accuracy_scores"] = accuracy_scores
     return predictions
 
 # Plot line chart for trend comparison
@@ -722,7 +795,7 @@ def manual_selection_interface():
 
     return selected_series, selected_countries, selected_years, selected_chart
 
-# Interface for AI analysis options
+# Manual selection of AI analysis options
 def analysis_selection_interface(series_name, countries, years):
     print(f"\n" + "=" * 60)
     print("AI ANALYSIS OPTIONS")
@@ -863,7 +936,7 @@ def generate_trend_prediction(series_name, country_data, years, prediction_years
     print(f"\nGenerating {prediction_years}-year predictions for {series_name}...")
     predictions = get_llm_trend_prediction(series_name, country_data, prediction_years)
 
-    # Debug: Print what we actually got from the LLM
+    # Debug: Print response from the LLM
     print(f"DEBUG: Predictions type: {type(predictions)}")
     print(f"DEBUG: Predictions content: {predictions}")
 
@@ -876,37 +949,33 @@ def generate_trend_prediction(series_name, country_data, years, prediction_years
         predictions = get_mathematical_trend_prediction(series_name, country_data, prediction_years)
 
     print(f"\nPREDICTION SUMMARY:")
-    print("-" * 50)
+    print("-" * 60)
 
-    # Safe iteration with error handling
+    # Display predictions with accuracy scores
     if "predictions" in predictions and isinstance(predictions["predictions"], dict):
+        accuracy_scores = predictions.get("accuracy_scores", {})
+
         for country, future_values in predictions["predictions"].items():
             if country in country_data and len(country_data[country]['values']) > 0:
                 last_actual = country_data[country]['values'][-1]
                 if isinstance(future_values, list) and len(future_values) > 0:
                     first_predicted = future_values[0]
+
+                    # Calculate percentage change
                     if last_actual != 0:
                         predicted_change = ((first_predicted - last_actual) / last_actual * 100)
                         trend = "Increase" if predicted_change > 0 else "Decrease" if predicted_change < 0 else "Stable"
+
+                        # Display accuracy if available
+                        accuracy_info = ""
+                        if country in accuracy_scores:
+                            if isinstance(accuracy_scores[country], (int, float)):
+                                accuracy_info = f" | Model Accuracy: {accuracy_scores[country]:.1f}%"
+                            else:
+                                accuracy_info = f" | {accuracy_scores[country]}"
+
                         print(
-                            f"{trend} {country}: {last_actual:.1f} → {first_predicted:.1f} ({predicted_change:+.1f}%)")
-                else:
-                    print(f"⚠️  {country}: Invalid prediction format")
-    else:
-        print("No valid predictions generated. Using mathematical fallback.")
-        predictions = get_mathematical_trend_prediction(series_name, country_data, prediction_years)
-        # Try again with mathematical predictions
-        if "predictions" in predictions:
-            for country, future_values in predictions["predictions"].items():
-                if country in country_data and len(country_data[country]['values']) > 0:
-                    last_actual = country_data[country]['values'][-1]
-                    if isinstance(future_values, list) and len(future_values) > 0:
-                        first_predicted = future_values[0]
-                        if last_actual != 0:
-                            predicted_change = ((first_predicted - last_actual) / last_actual * 100)
-                            trend = "Increase" if predicted_change > 0 else "Decrease" if predicted_change < 0 else "Stable"
-                            print(
-                                f"{trend} {country}: {last_actual:.1f} → {first_predicted:.1f} ({predicted_change:+.1f}%)")
+                            f"{trend} {country}: {last_actual:.1f} → {first_predicted:.1f} ({predicted_change:+.1f}%){accuracy_info}")
 
     print("\n" + "=" * 70)
 
