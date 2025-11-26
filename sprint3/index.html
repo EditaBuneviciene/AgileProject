@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health Data Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Health Data Trends Dashboard</h1>
+    <p>Visualize global health indicators (2000–2022)</p>
+  </header>
+
+  <section id="controls">
+    <div class="controls-row">
+      <div class="control-group">
+        <label for="indicatorSelect">Select Indicator:</label>
+        <select id="indicatorSelect">
+          <option value="">-- Select Indicator --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="countryA">Country / Region A:</label>
+        <select id="countryA">
+          <option value="">-- Select Country A --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="countryB">Country / Region B:</label>
+        <select id="countryB">
+          <option value="">-- Select Country B --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="yearSelect">Year:</label>
+        <select id="yearSelect">
+          <option value="">-- All Years --</option>
+        </select>
+      </div>
+
+      <div class="control-group checkbox-group">
+        <label><input type="checkbox" id="showChange" /> Show % Change (YoY)</label>
+      </div>
+    </div>
+
+    <div class="data-info">
+      <p>📊 108 Indicators • 200+ Countries • 2000–2022</p>
+    </div>
+  </section>
+
+  <section id="chartContainer">
+    <canvas id="trendChart"></canvas>
+  </section>
+
+  <section id="summary">
+    <h2>Summary Report</h2>
+    <div id="summaryContent"><p>Select data above to display chart</p></div>
+  </section>
+
+  <footer>
+    <p>© 2025 | Health Analytics Dashboard | Built by Patrick</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
