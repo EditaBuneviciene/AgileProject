@@ -1,77 +1,147 @@
 const API_BASE = 'http://localhost:5000/api';
 
-async function loadData() {
-  const response = await fetch("../data/Data_Cleaned.csv");
-  const text = await response.text();
-
-  // Auto-detect delimiter
-  const delimiter = text.includes(";") ? ";" : ",";
-  const rows = text.trim().split(/\r?\n/);
-  const headers = rows[0].split(delimiter);
-  const years = headers.slice(2).map(h => h.trim());
-
-  const dataByIndicator = {};
-  const indicators = new Set();
-  const countries = new Set();
-
-  for (let i = 1; i < rows.length; i++) {
-    const cols = rows[i].split(delimiter);
-    if (cols.length < 3) continue;
-    const indicator = cols[0].trim();
-    const country = cols[1].trim();
-    const values = cols.slice(2).map(v => parseFloat(v) || 0);
-
-    indicators.add(indicator);
-    countries.add(country);
-
-    if (!dataByIndicator[indicator]) dataByIndicator[indicator] = {};
-    dataByIndicator[indicator][country] = values;
-  }
-
-  console.log("Loaded years:", years);
-  console.log("Indicators:", indicators.size, "Countries:", countries.size);
-
-  return { years, dataByIndicator, indicators: [...indicators].sort(), countries: [...countries].sort() };
-}
-
-function calculateYoY(data) {
-  const result = [0];
-  for (let i = 1; i < data.length; i++) {
-    const prev = data[i - 1];
-    const curr = data[i];
-    result.push(prev ? ((curr - prev) / prev) * 100 : 0);
-  }
-  return result;
-}
-
-function generateSummary(countryA, countryB, indicator, data) {
-  const set = data[indicator];
-  if (!set) return;
-  let html = `<h3>${indicator}</h3>`;
-  [countryA, countryB].forEach(c => {
-    if (c && set[c]) {
-      const vals = set[c];
-      const latest = vals[vals.length - 1];
-      const prev = vals[vals.length - 2];
-      const change = ((latest - prev) / prev * 100).toFixed(2);
-      html += `<p><b>${c}</b>: ${latest.toFixed(2)} (${change > 0 ? "+" : ""}${change}% YoY)</p>`;
-    }
-  });
-  document.getElementById("summaryContent").innerHTML = html;
-}
-
-// Simple Python API integration
-async function connectToPythonBackend() {
+// Load data from Python backend
+async function loadDataFromPython() {
   try {
+    console.log("Loading data from Python backend...");
+
     const response = await fetch(`${API_BASE}/load-data`);
     const result = await response.json();
-    
+
     if (result.status === 'success') {
-      console.log("Connected to Python backend");
-      return result;
+      console.log("Data loaded from Python backend:", result);
+
+      // Use data from Python app
+      return {
+        years: result.years || [],
+        indicators: result.series || [],
+        countries: result.countries || [],
+      };
+    }
+    throw new Error(result.message);
+  } catch (error) {
+    console.error("Failed to load from Python backend:", error);
+    // Show error to user
+    document.getElementById("summaryContent").innerHTML =
+      `<p style="color: red;">Error: Cannot connect to Python backend. Make sure api_connection.py is running.</p>`;
+    return { years: [], indicators: [], countries: [] };
+  }
+}
+
+// Initialize with Python data only
+async function initializeDashboard() {
+  await checkDataStatus();
+  return loadDataFromPython();
+}
+
+// Data Management Functions
+async function checkDataStatus() {
+    const statusElement = document.getElementById('dataStatus');
+    const messageElement = document.getElementById('uploadMessage');
+
+    statusElement.textContent = 'Checking...';
+    statusElement.className = 'status-checking';
+    messageElement.innerHTML = '';
+
+    try {
+        const response = await fetch(`${API_BASE}/check-data-status`);
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            statusElement.textContent = result.data_available ? 'Data Available' : 'No Data Found';
+            statusElement.className = result.data_available ? 'status-available' : 'status-missing';
+
+            if (!result.data_available) {
+                messageElement.innerHTML = '<div class="message info">Please upload a CSV file to get started</div>';
+            }
+        }
+    } catch (error) {
+        statusElement.textContent = 'Check Failed';
+        statusElement.className = 'status-missing';
+        messageElement.innerHTML = `<div class="message error">Unable to check data status: ${error.message}</div>`;
+    }
+}
+
+async function uploadCSV() {
+    const fileInput = document.getElementById('csvUpload');
+    const messageElement = document.getElementById('uploadMessage');
+
+    if (!fileInput.files.length) {
+        messageElement.innerHTML = '<div class="message error">Please select a CSV file first</div>';
+        return;
+    }
+
+    const file = fileInput.files[0];
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        messageElement.innerHTML = '<div class="message error">Please select a CSV file</div>';
+        return;
+    }
+
+    messageElement.innerHTML = '<div class="message info">Uploading and processing file... This may take a moment.</div>';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${API_BASE}/upload-csv`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            messageElement.innerHTML = `<div class="message success">${result.message}</div>`;
+
+            // Refresh the data and update the dashboard
+            setTimeout(() => {
+                checkDataStatus();
+                location.reload(); // Reload to refresh all data
+            }, 2000);
+
+        } else {
+            messageElement.innerHTML = `<div class="message error">Upload failed: ${result.message}</div>`;
+        }
+
+    } catch (error) {
+        messageElement.innerHTML = `<div class="message error">Upload error: ${error.message}</div>`;
+    }
+}
+
+// Generate chart using Python backend
+async function generateChartWithPython(series, countries, years, chartType = 'line') {
+  try {
+    console.log("📊 Requesting chart from Python:", { series, countries, years, chartType });
+
+    const response = await fetch(`${API_BASE}/generate-chart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        series: series,
+        countries: countries,
+        years: years,
+        chart_type: chartType
+      })
+    });
+
+    const result = await response.json();
+    console.log("📊 Chart response:", result);
+
+    if (result.status === 'success') {
+      // Display the chart image from Python
+      const chartContainer = document.getElementById("chartContainer");
+      chartContainer.innerHTML = `
+        <div class="python-chart">
+          <img src="${result.chart_image}" alt="Generated Chart" style="max-width: 100%; height: auto;">
+          <p class="chart-source">📊 Chart generated by your Python app</p>
+        </div>
+      `;
+      return result.country_data;
+    } else {
+      console.error("Chart generation failed:", result.message);
     }
   } catch (error) {
-    console.log("Python backend not available, using CSV data only");
+    console.log("Chart generation failed:", error);
   }
   return null;
 }
@@ -85,10 +155,10 @@ async function getAIInsights(indicator, countryA, countryB) {
       body: JSON.stringify({
         series: indicator,
         countries: [countryA, countryB].filter(c => c),
-        years: [] // Python will handle this
+        years: []
       })
     });
-    
+
     const result = await response.json();
     return result.status === 'success' ? result.insights : null;
   } catch (error) {
@@ -113,7 +183,7 @@ function enhanceSummaryWithAI(summaryElement, indicator, countryA, countryB) {
 async function showAIInsights(indicator, countryA, countryB) {
   const insights = await getAIInsights(indicator, countryA, countryB);
   const summaryContent = document.getElementById("summaryContent");
-  
+
   if (insights) {
     summaryContent.innerHTML = `
       <div class="ai-insights">
@@ -127,101 +197,125 @@ async function showAIInsights(indicator, countryA, countryB) {
   }
 }
 
-// Enhanced generateSummary to include AI features
-function generateSummary(countryA, countryB, indicator, data) {
-  const set = data[indicator];
-  if (!set) return;
-  
-  let html = `<h3>${indicator}</h3>`;
-  [countryA, countryB].forEach(c => {
-    if (c && set[c]) {
-      const vals = set[c];
-      const latest = vals[vals.length - 1];
-      const prev = vals[vals.length - 2];
-      const change = ((latest - prev) / prev * 100).toFixed(2);
-      html += `<p><b>${c}</b>: ${latest.toFixed(2)} (${change > 0 ? "+" : ""}${change}% YoY)</p>`;
-    }
+// Use initializeDashboard
+initializeDashboard().then(({ years, indicators, countries }) => {
+  console.log("Initializing dashboard with data:", {
+    yearsCount: years.length,
+    indicatorsCount: indicators.length,
+    countriesCount: countries.length
   });
-  
-  document.getElementById("summaryContent").innerHTML = html;
-  
-  // Add AI features if valid data
-  if (indicator && (countryA || countryB)) {
-    const summaryElement = document.getElementById("summaryContent");
-    enhanceSummaryWithAI(summaryElement, indicator, countryA, countryB);
-  }
-}
 
-loadData().then(({ years, dataByIndicator, indicators, countries }) => {
   const indicatorSel = document.getElementById("indicatorSelect");
   const countryASel = document.getElementById("countryA");
   const countryBSel = document.getElementById("countryB");
   const yearSel = document.getElementById("yearSelect");
   const showChange = document.getElementById("showChange");
-  const ctx = document.getElementById("trendChart").getContext("2d");
 
-  indicators.forEach(i => indicatorSel.add(new Option(i, i)));
-  countries.forEach(c => {
-    countryASel.add(new Option(c, c));
-    countryBSel.add(new Option(c, c));
-  });
-  years.forEach(y => yearSel.add(new Option(y, y)));
+  // Clear existing options first
+  indicatorSel.innerHTML = '<option value="">-- Select Indicator --</option>';
+  countryASel.innerHTML = '<option value="">-- Select Country A --</option>';
+  countryBSel.innerHTML = '<option value="">-- Select Country B --</option>';
+  yearSel.innerHTML = '<option value="">-- All Years --</option>';
 
-  const chart = new Chart(ctx, {
-    type: "line",
-    data: { labels: years, datasets: [] },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: "bottom" } },
-      scales: { y: { beginAtZero: false } }
-    }
+  // Populate dropdowns from Python data
+  indicators.forEach(item => {
+    const name = item.name || item.value || item;
+    const value = item.value || item.name || item;
+    indicatorSel.add(new Option(name, value));
   });
 
-  function updateChart() {
-    const ind = indicatorSel.value;
-    const dataset = dataByIndicator[ind];
-    if (!dataset) return;
-    const cA = countryASel.value;
-    const cB = countryBSel.value;
+  countries.forEach(item => {
+    const name = item.name || item.value || item;
+    const value = item.value || item.name || item;
+    countryASel.add(new Option(name, value));
+    countryBSel.add(new Option(name, value));
+  });
+
+  years.forEach(item => {
+    const name = item.name || item.value || item;
+    const value = item.value || item.name || item;
+    yearSel.add(new Option(name, value));
+  });
+
+  console.log("Dropdowns populated:", {
+    indicators: indicatorSel.options.length,
+    countries: countryASel.options.length,
+    years: yearSel.options.length
+  });
+
+  // Update chart using Python backend
+  async function updateChart() {
+    const indicator = indicatorSel.value;
+    const countryA = countryASel.value;
+    const countryB = countryBSel.value;
     const selectedYear = yearSel.value;
-    const yoY = showChange.checked;
-    const colors = ["#e63946", "#1d3557"];
-    const sets = [];
 
-    [cA, cB].forEach((c, i) => {
-      if (c && dataset[c]) {
-        let data = dataset[c];
-        if (selectedYear) {
-          const idx = years.indexOf(selectedYear);
-          data = idx !== -1 ? [data[idx]] : [];
-        }
-        sets.push({
-          label: c + (selectedYear ? ` (${selectedYear})` : ""),
-          data: yoY ? calculateYoY(dataset[c]) : data,
-          borderColor: colors[i],
-          backgroundColor: colors[i] + "88",
-          borderWidth: 2,
-          fill: false
-        });
-      }
-    });
+    console.log("Updating chart:", { indicator, countryA, countryB, selectedYear });
 
-    chart.data.labels = selectedYear ? [selectedYear] : years;
-    chart.data.datasets = sets;
-    chart.config.type = selectedYear ? "bar" : "line";
-    chart.update();
+    if (!indicator) {
+      document.getElementById("summaryContent").innerHTML = "<p>Please select an indicator</p>";
+      return;
+    }
 
-    generateSummary(cA, cB, ind, dataByIndicator);
+    const countriesToShow = [countryA, countryB].filter(c => c);
+    if (countriesToShow.length === 0) {
+      document.getElementById("summaryContent").innerHTML = "<p>Please select at least one country</p>";
+      return;
+    }
+
+    document.getElementById("summaryContent").innerHTML = "<p>Generating chart with Python backend...</p>";
+
+    const yearsToShow = selectedYear ? [selectedYear] : (years.map(item => item.value || item.name || item));
+    const chartType = selectedYear ? 'bar' : 'line';
+
+    const countryData = await generateChartWithPython(indicator, countriesToShow, yearsToShow, chartType);
+
+    if (countryData) {
+      // Show AI features after chart is generated
+      const summaryContent = document.getElementById("summaryContent");
+      summaryContent.innerHTML = `
+        <div class="summary-info">
+          <h3>${indicator}</h3>
+          <p>Chart generated successfully for ${countriesToShow.join(', ')}</p>
+        </div>
+      `;
+
+      // Add AI features
+      const aiSection = document.createElement('div');
+      aiSection.className = 'ai-features';
+      aiSection.innerHTML = `
+        <h4>🤖 AI Analysis</h4>
+        <button onclick="getAIInsightsForChart('${indicator}', '${countryA}', '${countryB}')" class="ai-btn">
+          Get AI Insights
+        </button>
+      `;
+      summaryContent.appendChild(aiSection);
+    } else {
+      document.getElementById("summaryContent").innerHTML =
+        "<p style='color: red;'>Failed to generate chart. Check Python backend.</p>";
+    }
   }
 
+  // AI function for chart
+  window.getAIInsightsForChart = async function(indicator, countryA, countryB) {
+    const insights = await getAIInsights(indicator, countryA, countryB);
+    const summaryContent = document.getElementById("summaryContent");
+
+    if (insights) {
+      summaryContent.innerHTML = `
+        <div class="ai-insights">
+          <h3>🤖 AI Analysis: ${indicator}</h3>
+          <div class="insight-text">${insights}</div>
+          <button onclick="updateChart()" class="back-btn">← Back to Chart</button>
+        </div>
+      `;
+    } else {
+      summaryContent.innerHTML += `<p class="ai-error">AI insights currently unavailable</p>`;
+    }
+  };
+
+  // Event listeners
   [indicatorSel, countryASel, countryBSel, yearSel, showChange].forEach(el =>
     el.addEventListener("change", updateChart)
   );
-
-  // Try to connect to Python backend on startup
-  connectToPythonBackend().then(pythonData => {
-    if (pythonData) {
-      console.log("Python backend connected successfully!");
-    }
-  });
 });
