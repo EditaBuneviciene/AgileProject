@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Health Data Dashboard</title>
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -16,42 +14,84 @@
   </header>
 
   <section id="controls">
-    <div class="controls-row">
-      <div class="control-group">
-        <label for="indicatorSelect">Select Indicator:</label>
-        <select id="indicatorSelect">
-          <option value="">-- Select Indicator --</option>
-        </select>
+    <div class="controls-grid">
+      <!-- Data Selection Column -->
+      <div class="control-column">
+        <h3>Data Selection</h3>
+
+        <div class="control-group">
+          <label for="indicatorSelect">Select Indicator:</label>
+          <select id="indicatorSelect">
+            <option value="">-- Select Indicator --</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="countryA">Country / Region A:</label>
+          <select id="countryA">
+            <option value="">-- Select Country A --</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="countryB">Country / Region B:</label>
+          <select id="countryB">
+            <option value="">-- Select Country B --</option>
+          </select>
+        </div>
       </div>
 
-      <div class="control-group">
-        <label for="countryA">Country / Region A:</label>
-        <select id="countryA">
-          <option value="">-- Select Country A --</option>
-        </select>
+      <!-- Time Range Column -->
+      <div class="control-column">
+        <h3>Time Range</h3>
+
+        <div class="control-group">
+          <label for="startYear">From Year:</label>
+          <select id="startYear">
+            <option value="">-- Start Year --</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="endYear">To Year:</label>
+          <select id="endYear">
+            <option value="">-- End Year --</option>
+          </select>
+        </div>
+
+        <div class="control-group checkbox-group">
+          <label><input type="checkbox" id="showChange" /> Show % Change (YoY)</label>
+        </div>
       </div>
 
-      <div class="control-group">
-        <label for="countryB">Country / Region B:</label>
-        <select id="countryB">
-          <option value="">-- Select Country B --</option>
-        </select>
-      </div>
+      <!-- Analysis Options Column -->
+      <div class="control-column">
+        <h3>Analysis Options</h3>
 
-      <div class="control-group">
-        <label for="yearSelect">Year:</label>
-        <select id="yearSelect">
-          <option value="">-- All Years --</option>
-        </select>
-      </div>
+        <div class="radio-group">
+          <label>Chart Type:</label>
+          <div class="radio-options">
+            <label><input type="radio" name="chartType" value="line" checked> Line Chart</label>
+            <label><input type="radio" name="chartType" value="bar"> Bar Chart</label>
+            <label><input type="radio" name="chartType" value="heatmap"> Heatmap</label>
+          </div>
+        </div>
 
-      <div class="control-group checkbox-group">
-        <label><input type="checkbox" id="showChange" /> Show % Change (YoY)</label>
-      </div>
-    </div>
+        <div class="radio-group">
+          <label><input type="checkbox" id="enablePredictions"> Enable Trend Predictions</label>
+        </div>
 
-    <div class="data-info">
-      <p>📊 108 Indicators • 200+ Countries • 2000–2022</p>
+        <div class="radio-group" id="predictionOptions" style="display: none;">
+          <label>Prediction Period:</label>
+          <div class="radio-options">
+            <label><input type="radio" name="predictionYears" value="5"> 5 Years</label>
+            <label><input type="radio" name="predictionYears" value="10"> 10 Years</label>
+            <label><input type="radio" name="predictionYears" value="15"> 15 Years</label>
+          </div>
+        </div>
+
+        <button id="generateBtn" class="generate-btn">Generate Analysis</button>
+      </div>
     </div>
   </section>
 
@@ -59,15 +99,16 @@
     <canvas id="trendChart"></canvas>
   </section>
 
-  <section id="summary">
-    <h2>Summary Report</h2>
-    <div id="summaryContent"><p>Select data above to display chart</p></div>
+  <!-- AI Insights between chart and data management -->
+  <section id="aiInsights">
+    <h2>AI Analysis & Insights</h2>
+    <div id="insightsContent">
+      <p>Generate a chart to see AI insights and predictions</p>
+    </div>
   </section>
 
-  <!-- ADD THIS NEW SECTION -->
   <section id="dataManagement">
     <h2>Data Management</h2>
-
     <div class="upload-section">
       <div class="upload-info">
         <p><strong>Current Status:</strong> <span id="dataStatus">Checking data...</span></p>

@@ -81,8 +81,8 @@ def api_load_data():
     try:
         # Ensure data is loaded
         if not series_list or not countries_list:
-            print("📥 Data not loaded, loading now...")
-            success = initialize_data()  # Use our initialize function
+            print("Data not loaded, loading now...")
+            success = initialize_data()
             if not success:
                 return jsonify({"status": "error", "message": "Failed to load dataset"})
 
@@ -112,7 +112,7 @@ def api_generate_chart():
         years = data['years']
         chart_type = data.get('chart_type', 'line')
 
-        print(f"📊 Generating chart: {series}, {countries}, {years}, {chart_type}")
+        print(f"Generating chart: {series}, {countries}, {years}, {chart_type}")
 
         # Call your existing function
         country_data = plot_trend(series, countries, years, chart_type)
@@ -143,10 +143,43 @@ def api_get_insights():
     try:
         data = request.json
         series = data['series']
-        country_data = data['country_data']
+        countries = data['countries']
         years = data['years']
 
-        print(f"🤖 Generating insights for: {series}")
+        print(f"Generating insights for: {series}, {countries}")
+
+        # Create country_data structure for the AI function
+        country_data = {}
+
+        for country in countries:
+            # Get actual data for this country and series
+            country_df = df_global[
+                (df_global['Country Name'] == country) &
+                (df_global['Series Name'] == series)
+                ]
+
+            if not country_df.empty:
+                # Extract years and values
+                year_values = []
+                data_values = []
+
+                for year_col in year_columns:
+                    if year_col in years:
+                        value = country_df[year_col].iloc[0]
+                        if pd.notna(value):
+                            year_values.append(int(year_col))
+                            data_values.append(float(value))
+
+                if year_values and data_values:
+                    country_data[country] = {
+                        'years': year_values,
+                        'values': data_values
+                    }
+
+        print(f"Country data for insights: {country_data}")
+
+        if not country_data:
+            return jsonify({"status": "error", "message": "No data available for selected countries and series"})
 
         insights = generate_insight_report(series, country_data, years)
 
@@ -156,12 +189,72 @@ def api_get_insights():
         })
 
     except Exception as e:
+        print(f"Insights error: {e}")
         return jsonify({"status": "error", "message": str(e)})
+
+
+# Get trend predictions using existing function
+@app.route('/api/get-predictions', methods=['POST'])
+def api_get_predictions():
+    try:
+        data = request.json
+        series = data['series']
+        countries = data['countries']
+        years = data['years']
+        prediction_years = data['prediction_years']
+
+        print(f"Generating {prediction_years}-year predictions for: {series}, {countries}")
+
+        # Get real country data for predictions
+        country_data = {}
+
+        for country in countries:
+            # Get actual data for this country and series
+            country_df = df_global[
+                (df_global['Country Name'] == country) &
+                (df_global['Series Name'] == series)
+                ]
+
+            if not country_df.empty:
+                # Extract years and values
+                year_values = []
+                data_values = []
+
+                for year_col in year_columns:
+                    if year_col in years:
+                        value = country_df[year_col].iloc[0]
+                        if pd.notna(value):
+                            year_values.append(int(year_col))
+                            data_values.append(float(value))
+
+                if year_values and data_values:
+                    country_data[country] = {
+                        'years': year_values,
+                        'values': data_values
+                    }
+
+        print(f"Country data for predictions: {country_data}")
+
+        if not country_data:
+            return jsonify({"status": "error", "message": "No data available for selected countries and series"})
+
+        predictions = generate_trend_prediction(series, country_data, years, prediction_years)
+
+        print(f"Predictions generated: {predictions}")
+
+        return jsonify({
+            "status": "success",
+            "predictions": predictions
+        })
+
+    except Exception as e:
+        print(f"Prediction error: {e}")
+        return jsonify({"status": "error", "message": str(e)})
+
 
 # Check if data files exist
 @app.route('/api/check-data-status', methods=['GET'])
 def check_data_status():
-
     try:
         data_available = os.path.exists('Data_Cleaned.csv') or os.path.exists('Data.csv')
 
