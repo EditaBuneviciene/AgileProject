@@ -1,0 +1,41 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Test dependencies
+      run: |
+        python -c "import flask, pandas, matplotlib; print('✅ Dependencies OK')"
+
+    - name: Build Docker image
+      run: docker build -t health-dashboard:latest .
+
+    - name: Create 3 artifacts
+      run: |
+        # Artifact 1: Docker image
+        docker save health-dashboard:latest -o docker-image.tar
+        
+        # Artifact 2: Source code package
+        zip -r source-code-package.zip *.py *.html *.js *.css *.csv requirements.txt
+        
+        # Artifact 3: Web deployment package (HTML/CSS/JS only)
+        zip -r web-frontend.zip *.html *.js *.css
+        
+        echo "Created 3 Artifacts"
+        ls -la *.tar *.zip
+
+    - name: Upload all artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ci-artifacts
+        path: |
+          docker-image.tar
+          source-code-package.zip  
+          web-frontend.zip
+        retention-days: 7
