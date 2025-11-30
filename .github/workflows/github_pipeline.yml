@@ -2,7 +2,8 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - feature/**
   pull_request:
 
 jobs:
@@ -13,12 +14,12 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.9"
+        python-version: "3.10"
 
     - name: Install Dependencies
       run: |
@@ -27,31 +28,17 @@ jobs:
 
     - name: Run Tests
       run: |
-        pytest -v --cov=main --cov-report=xml
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
 
-    - name: Archive Test Results
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report
-        path: coverage.xml
-
-  # Build Production Docker Image
-  docker_build:
-    needs: build_and_test
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-
-    - name: Build Docker Image
+    - name: Run Tests
       run: |
-        docker build -t health-dashboard:latest .
+        pytest --maxfail=1 --disable-warnings -q
 
-    - name: Save Docker Image as Artifact
-      uses: actions/upload-artifact@v3
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
       with:
-        name: production-image
-        path: |
-          $(docker save health-dashboard:latest | gzip > production-image.tar.gz)
+        name: test-results
+        path: ./tests
 
