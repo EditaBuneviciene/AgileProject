@@ -37,7 +37,7 @@ def add_file_to_directory(file_path):
 
 # Scan for CSV files and handle dataset loading
 def scan_for_csv():
-    all_files = os.listdir('.')
+    all_files = os.listdir('../..')
     csv_files = [file for file in all_files if file.endswith('.csv')]
 
     if len(csv_files) == 0:
@@ -1076,7 +1076,7 @@ def main():
 
     print(f'Dataset: {len(series_list)} series, {len(countries_list)} countries, {len(year_columns)} years')
 
-    if "Data_Cleaned.csv" not in os.listdir('.'):
+    if "Data_Cleaned.csv" not in os.listdir('../..'):
         try:
             high_missing_data = missing_values_in_rows(df)
             df_clean = clean_dataset(high_missing_data, df)

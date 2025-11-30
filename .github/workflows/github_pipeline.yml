@@ -1,0 +1,57 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+
+  # Build & Test
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov beautifulsoup4 lxml
+
+    - name: Run Tests
+      run: |
+        pytest -v --cov=main --cov-report=xml
+
+    - name: Archive Test Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage.xml
+
+  # Build Production Docker Image
+  docker_build:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Build Docker Image
+      run: |
+        docker build -t health-dashboard:latest .
+
+    - name: Save Docker Image as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: production-image
+        path: |
+          $(docker save health-dashboard:latest | gzip > production-image.tar.gz)
+

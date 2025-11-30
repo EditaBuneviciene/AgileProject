@@ -22,6 +22,6 @@ dist/
 *.egg-info/
 .egg
 
-Data_Cleaned.csv
+sprint3/phase_1/Data_Cleaned.csv
 
 
