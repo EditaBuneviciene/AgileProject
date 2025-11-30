@@ -64,6 +64,27 @@
     <div id="summaryContent"><p>Select data above to display chart</p></div>
   </section>
 
+
+  <section id="dataManagement">
+    <h2>Data Management</h2>
+
+    <div class="upload-section">
+        <div class="upload-info">
+            <p><strong>Current Status:</strong> <span id="dataStatus">Checking data...</span></p>
+            <p>Upload a new CSV file to update the dataset</p>
+        </div>
+
+    <div class="upload-controls">
+      <input type="file" id="csvUpload" accept=".csv" />
+      <button onclick="uploadCSV()" class="upload-btn">Upload CSV File</button>
+      <button onclick="checkDataStatus()" class="refresh-btn">Refresh Status</button>
+    </div>
+
+    <div id="uploadMessage" class="message"></div>
+  </div>
+</section>
+
+
   <footer>
     <p>© 2025 | Health Analytics Dashboard | Built by Patrick</p>
   </footer>
