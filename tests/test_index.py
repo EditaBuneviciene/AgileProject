@@ -1,6 +1,9 @@
 import os
 from bs4 import BeautifulSoup
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 def test_html_exists():
     assert os.path.exists("index.html")
 
