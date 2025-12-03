@@ -450,5 +450,49 @@ async function uploadCSV() {
   }
 }
 
+function downloadDashboardPDF() {
+  const { jsPDF } = window.jspdf;
+
+  // Choose what part of the page to capture.
+  // You can use document.body, or a specific wrapper if you prefer.
+  const dashboardElement = document.body;
+
+  // Optional: scroll to top so layout isn't mid-scroll
+  window.scrollTo(0, 0);
+
+  html2canvas(dashboardElement, { scale: 2 })
+    .then(canvas => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // First page
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Extra pages if content is longer than one page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save("health-dashboard.pdf");
+    })
+    .catch(err => {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF.");
+    });
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', initializeDashboard);

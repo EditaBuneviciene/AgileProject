@@ -6,6 +6,9 @@
   <title>Health Data Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
 <body>
   <header>
@@ -121,6 +124,7 @@
         <input type="file" id="csvUpload" accept=".csv" />
         <button onclick="uploadCSV()" class="upload-btn">Upload CSV File</button>
         <button onclick="checkDataStatus()" class="refresh-btn">Refresh Status</button>
+        <button type="button" onclick="downloadDashboardPDF()" class="download-btn">Download Dashboard as PDF</button>
       </div>
 
       <div id="uploadMessage" class="message"></div>
@@ -132,5 +136,32 @@
   </footer>
 
   <script src="app.js"></script>
+
+<!-- Download PDF report on button click. -->
+  <script>
+  function downloadPDF() {
+    const content = document.documentElement.innerHTML;
+
+    fetch("http://localhost:5000/api/render-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: content })
+    })
+    .then(res => res.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dashboard.pdf";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(err => {
+      console.error("PDF download error:", err);
+      alert("Failed to generate PDF.");
+    });
+  }
+  </script>
+
 </body>
 </html>
