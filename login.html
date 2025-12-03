@@ -97,7 +97,8 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      const filename = `${email}.txt`;
+      // const filename = `../web/${email}.txt`;
+      const filename = `http://localhost:5000/web/${encodeURIComponent(email)}.txt`;
 
       fetch(filename)
         .then(response => {
@@ -109,7 +110,7 @@
           const storedPassword = lines[2]?.split(':')[1]?.trim();
           if (password === storedPassword) {
             alert("Login successful!");
-            window.location.href = "home.html";
+            window.location.href = "index.html";
           } else {
             alert("Incorrect password. Please try again.");
           }

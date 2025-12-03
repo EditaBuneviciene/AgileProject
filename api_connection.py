@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sys
 import os
@@ -16,7 +16,8 @@ from main import (
     get_llm_trend_prediction, add_file_to_directory
 )
 
-app = Flask(__name__)
+# app = Flask(__name__)
+app = Flask(__name__, static_folder='web', static_url_path='/web')
 CORS(app)
 
 # Globals
@@ -257,3 +258,4 @@ def upload_csv():
 if __name__ == '__main__':
     print("Flask running at http://localhost:5000")
     app.run(debug=True, port=5000)
+
