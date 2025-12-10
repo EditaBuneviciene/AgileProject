@@ -26,6 +26,10 @@ countries_list = []
 year_columns = []
 df_global = None
 
+# Valid users and password
+VALID_USERS = {"dariusz@mail.com", "edita@mail.com", "ed@mail.com", "patrick@mail.com"}
+VALID_PASSWORD = "1234"
+
 
 # Initialize dataset on startup
 def initialize_data():
@@ -71,6 +75,18 @@ def debug_info():
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+
+    if username in VALID_USERS and password == VALID_PASSWORD:
+        return jsonify({"status": "success", "message": "Login successful"})
+
+    return jsonify({"status": "error", "message": "Invalid username or password"}), 401
 
 
 # Load dataset info for frontend

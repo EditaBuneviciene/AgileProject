@@ -11,6 +11,11 @@
 
 </head>
 <body>
+    <script>
+        if (!sessionStorage.getItem("loggedInUser")) {
+             window.location.href = "login.html";
+        }
+    </script>
   <header>
     <h1>Health Data Trends Dashboard</h1>
     <p>Visualize global health indicators (2000–2022)</p>

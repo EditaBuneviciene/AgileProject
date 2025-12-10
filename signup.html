@@ -108,6 +108,12 @@
       <button type="button" class="signin-btn" onclick="window.location.href='login.html'">Sign In</button>
     </div>
   </div>
-
+  <script>
+      document.querySelector("form").addEventListener("submit", function(event) {
+          event.preventDefault();
+          alert("Account created! (Mock demo)");
+          window.location.href = "login.html";
+      });
+</script>
 </body>
 </html>

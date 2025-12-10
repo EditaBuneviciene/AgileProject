@@ -1,12 +1,11 @@
-from unicodedata import numeric
 import pandas as pd
 import matplotlib
-
-matplotlib.use('Agg')  # Use non-interactive backend for web
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import json
+import re
 from openai import OpenAI
 import time
 import io
@@ -67,7 +66,7 @@ def scan_for_csv():
     print("Dataset found")
     return pd.read_csv('Data_Cleaned.csv')
 
-
+# Dataset Operations
 # Load dataset into globals
 def load_dataset():
     global df, series_list, countries_list, year_columns
@@ -159,7 +158,7 @@ def get_available_model(client):
         return None
 
 
-# Calculate accuracy (unchanged)
+# Model Training and testing
 def calculate_model_accuracy(country_data):
     accuracy_scores = {}
 
@@ -236,13 +235,114 @@ def get_llm_insight_report(series_name, country_data, years):
 
 # FULL HISTORICAL trend predictions
 def get_llm_trend_prediction(series_name, country_data, prediction_years):
-    # function body unchanged
-    return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+    client = setup_llm()
+    if not client:
+        return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+
+    try:
+        model_name = get_available_model(client)
+        if not model_name:
+            return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+
+        print(f"Generating predictions with {model_name}...")
+
+        # Calculate accuracy scores first
+        accuracy_scores = calculate_model_accuracy(country_data)
+
+        # Build data summary with trends and accuracy
+        data_summary = "Historical data with model accuracy:\n"
+        for country, data in country_data.items():
+            if len(data['values']) > 0:
+                values = data['values']
+                years = data['years']
+                accuracy = accuracy_scores.get(country, "Unknown")
+
+                if len(values) > 1:
+                    trend = ("increasing" if values[-1] > values[0]
+                             else "decreasing" if values[-1] < values[0]
+                             else "stable")
+                    data_summary += f"{country}: {trend} from {values[0]:.3f} to {values[-1]:.3f} | Model Accuracy: {accuracy}\n"
+                else:
+                    data_summary += f"{country}: current value {values[-1]:.3f} | Model Accuracy: {accuracy}\n"
+
+        # Calculate overall accuracy
+        numeric_accuracies = [acc for acc in accuracy_scores.values() if isinstance(acc, (int, float))]
+        overall_accuracy = np.mean(numeric_accuracies) if numeric_accuracies else 0
+
+        # Prompt for the LLM
+        prompt = f"""
+        You are a data analysis assistant. Based on the historical data below, predict future values.
+
+        {data_summary}
+
+        Series: {series_name}
+        Prediction years: {prediction_years}
+        Overall Model Reliability: {overall_accuracy:.1f}% accuracy on historical test data
+
+        Return ONLY valid JSON in this exact format:
+        {{
+            "predictions": {{
+                "Country Name 1": [0.1, 0.2, 0.3],
+                "Country Name 2": [0.4, 0.5, 0.6]
+            }}
+        }}
+
+        Rules:
+        - Return exactly {prediction_years} numbers per country
+        - Make predictions realistic based on historical trend
+        - Keep values numerically similar to the dataset range
+        - For countries with low accuracy, be conservative
+        - DO NOT add any explanation, only raw JSON
+        """
+
+        # Call the LLM
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": "Return only JSON. You are a statistical forecasting engine."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=500,
+            timeout=30
+        )
+
+        prediction_text = response.choices[0].message.content.strip()
+        print("DEBUG: Raw LLM output:", prediction_text)
+
+        # Extract JSON
+        match = re.search(r"\{.*\}", prediction_text, re.DOTALL)
+        if match:
+            prediction_text = match.group()
+
+        predictions = json.loads(prediction_text)
+
+        # Validate structure
+        if "predictions" in predictions:
+            for country, values in predictions["predictions"].items():
+                if len(values) != prediction_years:
+                    print("LLM returned wrong length → fallback used.")
+                    return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+
+            # Attach accuracy scores
+            predictions["accuracy_scores"] = accuracy_scores
+            return predictions
+
+        print("Invalid LLM structure → fallback used.")
+        return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+
+    except Exception as e:
+        print("LLM prediction failed:", e)
+        return get_mathematical_trend_prediction(series_name, country_data, prediction_years)
+
 
 
 # Mathematical fallback prediction
 def get_mathematical_trend_prediction(series_name, country_data, prediction_years):
     predictions = {"predictions": {}}
+    if not isinstance(country_data, dict) or len(country_data) == 0:
+        predictions["accuracy_scores"] = {}
+        return predictions
     accuracy_scores = calculate_model_accuracy(country_data)
 
     for country, data in country_data.items():
@@ -288,6 +388,8 @@ def get_country_data(series_name, country_names, selected_years):
         df_cleaned = pd.read_csv('Data_Cleaned.csv')
         current_df = df_cleaned
     except:
+        if df is None:
+            load_dataset()
         current_df = df
 
     # Full year columns
@@ -415,7 +517,7 @@ def plot_trend(series_name, countries, selected_years, chart_type='line'):
 
 
 def plot_trend_cli(series, countries, years, chart_type='line'):
-    pass
+    print("CLI mode disabled — use the web dashboard instead.")
 
 
 # Main

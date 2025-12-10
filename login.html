@@ -94,32 +94,35 @@
 
   <script>
     function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value.trim();
 
-      // const filename = `../web/${email}.txt`;
-      const filename = `http://localhost:5000/web/${encodeURIComponent(email)}.txt`;
+      // Hardcoded allowed users — same as Flask
+        const validUsers = {
+              "dariusz@mail.com": "1234",
+               "edita@mail.com": "1234",
+               "ed@mail.com": "1234",
+               "patrick@mail.com": "1234"
+      };
 
-      fetch(filename)
-        .then(response => {
-          if (!response.ok) throw new Error('User file not found');
-          return response.text();
-        })
-        .then(data => {
-          const lines = data.split('\n');
-          const storedPassword = lines[2]?.split(':')[1]?.trim();
-          if (password === storedPassword) {
-            alert("Login successful!");
-            window.location.href = "index.html";
-          } else {
-            alert("Incorrect password. Please try again.");
-          }
-        })
-        .catch(() => {
-          alert("User not found. Please check your email or create an account.");
-        });
+      // Check if user exists
+      if (!(email in validUsers)) {
+         alert("User not found. Only demo accounts may log in.");
+         return;
+      }
+
+      // Check password
+      if (validUsers[email] !== password) {
+        alert("Incorrect password.");
+        return;
+      }
+
+      // Store simple session
+      sessionStorage.setItem("loggedInUser", email);
+
+      // Redirect to dashboard
+      window.location.href = "index.html";
     }
   </script>
-
 </body>
 </html>
