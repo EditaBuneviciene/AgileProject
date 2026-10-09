@@ -15,3 +15,4 @@ Example for filename 'joe@mail.com.txt':
 Full Name: joe smith
 Email: joe@email.com
 Password: jjj
+---
